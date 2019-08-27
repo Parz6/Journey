@@ -5,18 +5,14 @@ import rlbot.flat.PredictionSlice;
 import rlbot.render.Renderer;
 import Journey.vector.Vector3;
 
-import java.awt.*;
+import java.awt.Color;
 
-/**
- * This class can help you get started with ball prediction. Feel free to change it as much as you want,
- * this is part of your bot, not part of the framework!
- */
 public class BallPredictionHelper {
-
-    public static void drawTillMoment(BallPrediction ballPrediction, float gameSeconds, Color color, Renderer renderer) {
+    public static void drawTillMoment(BallPrediction bP, float gameSeconds, Color color, Renderer renderer, int sliceResolution) {
         Vector3 previousLocation = null;
-        for (int i = 0; i < ballPrediction.slicesLength(); i += 4) {
-            PredictionSlice slice = ballPrediction.slices(i);
+        int bPlen = bP.slicesLength();
+        for (int i = 0; i < bPlen; i += sliceResolution) {
+            PredictionSlice slice = bP.slices(i);
             if (slice.gameSeconds() > gameSeconds) {
                 break;
             }
@@ -26,5 +22,11 @@ public class BallPredictionHelper {
             }
             previousLocation = location;
         }
+    }
+    public static void drawTillMoment(BallPrediction bP, float gameSeconds, Color color, Renderer renderer) {
+        drawTillMoment(bP, gameSeconds, color, renderer, 4);
+    }
+    public static void draw(BallPrediction bP, Renderer renderer) {
+        drawTillMoment(bP, Float.MAX_VALUE, Color.cyan, renderer);
     }
 }
