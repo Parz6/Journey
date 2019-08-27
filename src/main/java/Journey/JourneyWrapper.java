@@ -24,7 +24,7 @@ public class JourneyWrapper {
 
         BotManager botManager = new BotManager();
         Integer port = PortReader.readPortFromArgs(args).orElseGet(() -> {
-            System.out.println("Could not read port from args, using default!");
+            System.out.println("Could not read port from args, using default (" + DEFAULT_PORT + ")!");
             return DEFAULT_PORT;
         });
 
