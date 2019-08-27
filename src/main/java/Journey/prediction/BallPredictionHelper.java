@@ -1,9 +1,9 @@
-package rlbotexample.prediction;
+package Journey.prediction;
 
 import rlbot.flat.BallPrediction;
 import rlbot.flat.PredictionSlice;
 import rlbot.render.Renderer;
-import rlbotexample.vector.Vector3;
+import Journey.vector.Vector3;
 
 import java.awt.*;
 

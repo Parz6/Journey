@@ -1,4 +1,4 @@
-package rlbotexample.vector;
+package Journey.vector;
 
 import com.google.flatbuffers.FlatBufferBuilder;
 

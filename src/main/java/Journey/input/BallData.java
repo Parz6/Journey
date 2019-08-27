@@ -1,8 +1,8 @@
-package rlbotexample.input;
+package Journey.input;
 
 
 import rlbot.flat.BallInfo;
-import rlbotexample.vector.Vector3;
+import Journey.vector.Vector3;
 
 /**
  * Basic information about the ball.

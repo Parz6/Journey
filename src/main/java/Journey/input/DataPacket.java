@@ -1,4 +1,4 @@
-package rlbotexample.input;
+package Journey.input;
 
 import rlbot.flat.GameTickPacket;
 

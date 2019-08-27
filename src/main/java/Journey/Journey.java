@@ -1,4 +1,4 @@
-package rlbotexample;
+package Journey;
 
 import rlbot.Bot;
 import rlbot.ControllerState;
@@ -9,20 +9,20 @@ import rlbot.flat.GameTickPacket;
 import rlbot.flat.QuickChatSelection;
 import rlbot.manager.BotLoopRenderer;
 import rlbot.render.Renderer;
-import rlbotexample.boost.BoostManager;
-import rlbotexample.input.CarData;
-import rlbotexample.input.DataPacket;
-import rlbotexample.output.ControlsOutput;
-import rlbotexample.prediction.BallPredictionHelper;
-import rlbotexample.vector.Vector2;
+import Journey.boost.BoostManager;
+import Journey.input.CarData;
+import Journey.input.DataPacket;
+import Journey.output.ControlsOutput;
+import Journey.prediction.BallPredictionHelper;
+import Journey.vector.Vector2;
 
 import java.awt.*;
 
-public class SampleBot implements Bot {
+public class Journey implements Bot {
 
     private final int playerIndex;
 
-    public SampleBot(int playerIndex) {
+    public Journey(int playerIndex) {
         this.playerIndex = playerIndex;
     }
 

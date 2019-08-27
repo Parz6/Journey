@@ -1,8 +1,8 @@
-package rlbotexample.input;
+package Journey.input;
 
 
 import rlbot.flat.PlayerInfo;
-import rlbotexample.vector.Vector3;
+import Journey.vector.Vector3;
 
 /**
  * The car's orientation in space, a.k.a. what direction it's pointing.

@@ -1,4 +1,4 @@
-package rlbotexample.vector;
+package Journey.vector;
 
 /**
  * A vector that only knows about x and y components.

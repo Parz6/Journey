@@ -1,7 +1,7 @@
-package rlbotexample;
+package Journey;
 
 import rlbot.manager.BotManager;
-import rlbotexample.util.PortReader;
+import Journey.util.PortReader;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
@@ -14,11 +14,11 @@ import java.util.stream.Collectors;
 /**
  * See JavaAgent.py for usage instructions.
  *
- * Look inside SampleBot.java for the actual bot logic!
+ * Look inside Journey.java for the actual bot logic!
  */
-public class JavaExample {
+public class JourneyWrapper {
 
-    private static final Integer DEFAULT_PORT = 17357;
+    private static final Integer DEFAULT_PORT = 17734; // Last three digits randomized from JavaExampleBot
 
     public static void main(String[] args) {
 
@@ -28,7 +28,7 @@ public class JavaExample {
             return DEFAULT_PORT;
         });
 
-        SamplePythonInterface pythonInterface = new SamplePythonInterface(port, botManager);
+        JourneyPythonInterface pythonInterface = new JourneyPythonInterface(port, botManager);
         new Thread(pythonInterface::start).start();
 
         JFrame frame = new JFrame("Java Bot");
@@ -48,7 +48,7 @@ public class JavaExample {
         panel.add(dataPanel, BorderLayout.CENTER);
         frame.add(panel);
 
-        URL url = JavaExample.class.getClassLoader().getResource("icon.png");
+        URL url = JourneyWrapper.class.getClassLoader().getResource("icon.png");
         Image image = Toolkit.getDefaultToolkit().createImage(url);
         panel.add(new JLabel(new ImageIcon(image)), BorderLayout.WEST);
         frame.setIconImage(image);

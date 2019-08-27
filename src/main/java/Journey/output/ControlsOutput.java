@@ -1,4 +1,4 @@
-package rlbotexample.output;
+package Journey.output;
 
 import rlbot.ControllerState;
 
