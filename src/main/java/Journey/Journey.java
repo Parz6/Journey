@@ -71,13 +71,8 @@ public class Journey implements Bot {
 
         renderer.drawString3d(goLeft ? "left" : "right", Color.WHITE, myCar.position, 2, 2);
 
-        try {
-            // Draw 3 seconds of ball prediction
-            BallPrediction ballPrediction = RLBotDll.getBallPrediction();
-            BallPredictionHelper.drawTillMoment(ballPrediction, dp.t + 3, Color.CYAN, renderer);
-        } catch (RLBotInterfaceException e) {
-            e.printStackTrace();
-        }
+        // Draw 3 seconds of ball prediction
+        BallPredictionHelper.drawTillMoment(dp.t + 3, Color.CYAN, renderer);
     }
 
 
