@@ -4,14 +4,7 @@ package Journey.input;
 import rlbot.flat.PlayerInfo;
 import Journey.vector.Vector3;
 
-/**
- * The car's orientation in space, a.k.a. what direction it's pointing.
- *
- * This class is here for your convenience, it is NOT part of the framework. You can change it as much
- * as you want, or delete it.
- */
 public class CarOrientation {
-
     /** The direction that the front of the car is facing */
     public final Vector3 noseVector;
 

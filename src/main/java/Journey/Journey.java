@@ -16,7 +16,7 @@ import Journey.output.ControlsOutput;
 import Journey.prediction.BallPredictionHelper;
 import Journey.vector.Vector2;
 
-import java.awt.*;
+import java.awt.Color;
 
 public class Journey implements Bot {
 
@@ -30,12 +30,11 @@ public class Journey implements Bot {
      * This is where we keep the actual bot logic. This function shows how to chase the ball.
      * Modify it to make your bot smarter!
      */
-    private ControlsOutput processInput(DataPacket input) {
+    private ControlsOutput processInput(DataPacket dp) {
 
-        Vector2 ballPosition = input.ball.position.flatten();
-        CarData myCar = input.car;
-        Vector2 carPosition = myCar.position.flatten();
-        Vector2 carDirection = myCar.orientation.noseVector.flatten();
+        Vector2 ballPosition = dp.bPf;
+        Vector2 carPosition = dp.cPf;
+        Vector2 carDirection = dp.cOf;
 
         // Subtract the two positions to get a vector pointing from the car to the ball.
         Vector2 carToBall = ballPosition.minus(carPosition);
@@ -46,10 +45,10 @@ public class Journey implements Bot {
         boolean goLeft = steerCorrectionRadians > 0;
 
         // This is optional!
-        drawDebugLines(input, myCar, goLeft);
+        doRendering(dp, dp.car, goLeft);
 
         // This is also optional!
-        if (input.ball.position.z > 300) {
+        if (dp.ball.position.z > 300) {
             RLBotDll.sendQuickChat(playerIndex, false, QuickChatSelection.Compliments_NiceOne);
         }
 
@@ -58,15 +57,12 @@ public class Journey implements Bot {
                 .withThrottle(1);
     }
 
-    /**
-     * This is a nice example of using the rendering feature.
-     */
-    private void drawDebugLines(DataPacket input, CarData myCar, boolean goLeft) {
+    private void doRendering(DataPacket dp, CarData myCar, boolean goLeft) {
         // Here's an example of rendering debug data on the screen.
         Renderer renderer = BotLoopRenderer.forBotLoop(this);
 
         // Draw a line from the car to the ball
-        renderer.drawLine3d(Color.LIGHT_GRAY, myCar.position, input.ball.position);
+        renderer.drawLine3d(Color.LIGHT_GRAY, myCar.position, dp.ball.position);
 
         // Draw a line that points out from the nose of the car.
         renderer.drawLine3d(goLeft ? Color.BLUE : Color.RED,
@@ -78,7 +74,7 @@ public class Journey implements Bot {
         try {
             // Draw 3 seconds of ball prediction
             BallPrediction ballPrediction = RLBotDll.getBallPrediction();
-            BallPredictionHelper.drawTillMoment(ballPrediction, myCar.elapsedSeconds + 3, Color.CYAN, renderer);
+            BallPredictionHelper.drawTillMoment(ballPrediction, dp.t + 3, Color.CYAN, renderer);
         } catch (RLBotInterfaceException e) {
             e.printStackTrace();
         }

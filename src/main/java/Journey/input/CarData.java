@@ -3,14 +3,7 @@ package Journey.input;
 
 import Journey.vector.Vector3;
 
-/**
- * Basic information about the car.
- *
- * This class is here for your convenience, it is NOT part of the framework. You can change it as much
- * as you want, or delete it.
- */
 public class CarData {
-
     /** The location of the car on the field. (0, 0, 0) is center field. */
     public final Vector3 position;
 
@@ -37,13 +30,7 @@ public class CarData {
      */
     public final int team;
 
-    /**
-     * This is not really a car-specific attribute, but it's often very useful to know. It's included here
-     * so you don't need to pass around DataPacket everywhere.
-     */
-    public final float elapsedSeconds;
-
-    public CarData(rlbot.flat.PlayerInfo playerInfo, float elapsedSeconds) {
+    public CarData(rlbot.flat.PlayerInfo playerInfo) {
         this.position = new Vector3(playerInfo.physics().location());
         this.velocity = new Vector3(playerInfo.physics().velocity());
         this.orientation = CarOrientation.fromFlatbuffer(playerInfo);
@@ -51,6 +38,5 @@ public class CarData {
         this.isSupersonic = playerInfo.isSupersonic();
         this.team = playerInfo.team();
         this.hasWheelContact = playerInfo.hasWheelContact();
-        this.elapsedSeconds = elapsedSeconds;
     }
 }

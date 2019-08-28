@@ -1,41 +1,54 @@
 package Journey.input;
 
+import Journey.vector.Vector2;
+import Journey.vector.Vector3;
+import rlbot.flat.GameInfo;
 import rlbot.flat.GameTickPacket;
 
 import java.util.ArrayList;
 import java.util.List;
 
-/**
- * This class is here for your convenience, it is NOT part of the framework. You can change it as much
- * as you want, or delete it. The benefits of using this instead of rlbot.flat.GameTickPacket are:
- * 1. You end up with nice custom Vector3 objects that you can call methods on.
- * 2. If the framework changes its data format, you can just update the code here
- * and leave your bot logic alone.
- */
 public class DataPacket {
-
-    /** Your own car, based on the playerIndex */
+    // Data
     public final CarData car;
-
     public final List<CarData> allCars;
-
     public final BallData ball;
-    public final int team;
 
-    /** The index of your player */
+    public final int team;
     public final int playerIndex;
 
-    public DataPacket(GameTickPacket request, int playerIndex) {
+    public final float t;
+    public final boolean isRoundActive, isKickoffPause, isKickoff;
 
-        this.playerIndex = playerIndex;
-        this.ball = new BallData(request.ball());
+    // Abbreviations for commonly used data
+    public final Vector3 cP, cV, cO, bP, bV;            // Car position, velocity, orientation; Ball position, velocity
+    public final Vector2 cPf, cVf, cOf, bPf, bVf;       // Flat versions (z=0)
+    public final double cVMag, cVfMag, bVMag, bVfMag;   // Magnitudes
+
+    public DataPacket(GameTickPacket request, int playerIndex) {
+        GameInfo gI = request.gameInfo();
+        t = gI.secondsElapsed();
+        isRoundActive = gI.isRoundActive();
+        isKickoffPause = gI.isKickoffPause();
 
         allCars = new ArrayList<>();
         for (int i = 0; i < request.playersLength(); i++) {
-            allCars.add(new CarData(request.players(i), request.gameInfo().secondsElapsed()));
+            allCars.add(new CarData(request.players(i)));
         }
 
+        this.playerIndex = playerIndex;
         this.car = allCars.get(playerIndex);
         this.team = this.car.team;
+        this.ball = new BallData(request.ball(), BallTouch.getBallTouch(request.ball().latestTouch()));
+
+        cP = car.position;                  cPf = cP.flatten();
+        cV = car.velocity;                  cVf = cV.flatten();
+        cO = car.orientation.noseVector;    cOf = cO.flatten();
+        bP = ball.position;                 bPf = bP.flatten();
+        bV = ball.velocity;                 bVf = bV.flatten();
+        cVMag = cV.magnitude();             cVfMag = cVf.magnitude();
+        bVMag = bV.magnitude();             bVfMag = bVf.magnitude();
+
+        isKickoff = Math.abs(bP.x) < 0.1 && Math.abs(bP.y) < 0.1 && Math.abs(bVMag) < 0.1; // Based exclusively on ball
     }
 }
