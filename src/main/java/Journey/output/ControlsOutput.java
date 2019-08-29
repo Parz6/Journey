@@ -33,28 +33,28 @@ public class ControlsOutput implements ControllerState {
     public ControlsOutput() {
     }
 
-    public ControlsOutput withSteer(float steer) {
-        this.steer = clamp(steer);
+    public ControlsOutput withSteer(double steer) {
+        this.steer = clamp((float) steer);
         return this;
     }
 
-    public ControlsOutput withPitch(float pitch) {
-        this.pitch = clamp(pitch);
+    public ControlsOutput withPitch(double pitch) {
+        this.pitch = clamp((float) pitch);
         return this;
     }
 
-    public ControlsOutput withYaw(float yaw) {
-        this.yaw = clamp(yaw);
+    public ControlsOutput withYaw(double yaw) {
+        this.yaw = clamp((float) yaw);
         return this;
     }
 
-    public ControlsOutput withRoll(float roll) {
-        this.roll = clamp(roll);
+    public ControlsOutput withRoll(double roll) {
+        this.roll = clamp((float) roll);
         return this;
     }
 
-    public ControlsOutput withThrottle(float throttle) {
-        this.throttle = clamp(throttle);
+    public ControlsOutput withThrottle(double throttle) {
+        this.throttle = clamp((float) throttle);
         return this;
     }
 
