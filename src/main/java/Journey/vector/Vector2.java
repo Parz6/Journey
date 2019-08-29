@@ -16,6 +16,15 @@ public class Vector2 {
         this.y = y;
     }
 
+    //Get an "equivalent" Vector3 with z=0
+    public Vector3 inflate() {
+        return new Vector3(x, y, 0);
+    }
+    //Get an "equivalent" Vector3 with z=z
+    public Vector3 inflate(double z) {
+        return new Vector3(x, y, z);
+    }
+
     public Vector2 plus(Vector2 other) {
         return new Vector2(x + other.x, y + other.y);
     }
@@ -72,13 +81,28 @@ public class Vector2 {
         return x == 0 && y == 0;
     }
 
+    public Vector2 rotateBy(double angleRad) {
+        double cosa = Math.cos(-angleRad);
+        double sina = Math.sin(-angleRad);
+        double newX = x*cosa + y*sina;
+        double newY = -x*sina + y*cosa;
+        return new Vector2(newX, newY);
+    }
+    public Vector2 rotateBy(Vector2 rotator) {
+        return rotateBy(rotator.angle());
+    }
+
+    public double angle() {
+        return Math.atan2(y, x);
+    }
+
     /**
      * The correction angle is how many radians you need to rotate this vector to make it line up with the "ideal"
      * vector. This is very useful for deciding which direction to steer.
      */
-    public double correctionAngle(Vector2 ideal) {
-        double currentRad = Math.atan2(y, x);
-        double idealRad = Math.atan2(ideal.y, ideal.x);
+    public double angleTo(Vector2 ideal) { // Originally "correctionAngle"
+        double currentRad = angle();
+        double idealRad = ideal.angle();
 
         if (Math.abs(currentRad - idealRad) > Math.PI) {
             if (currentRad < 0) {
@@ -96,6 +120,6 @@ public class Vector2 {
      * Will always return a positive value <= Math.PI
      */
     public static double angle(Vector2 a, Vector2 b) {
-        return Math.abs(a.correctionAngle(b));
+        return Math.abs(a.angleTo(b));
     }
 }

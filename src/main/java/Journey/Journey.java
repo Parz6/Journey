@@ -40,7 +40,7 @@ public class Journey implements Bot {
         Vector2 carToBall = ballPosition.minus(carPosition);
 
         // How far does the car need to rotate before it's pointing exactly at the ball?
-        double steerCorrectionRadians = carDirection.correctionAngle(carToBall);
+        double steerCorrectionRadians = carDirection.angleTo(carToBall);
 
         boolean goLeft = steerCorrectionRadians > 0;
 
