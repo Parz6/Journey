@@ -8,7 +8,7 @@ public class BallData {
     public final Vector3 position;
     public final Vector3 velocity;
     public final Vector3 spin;
-    public final BallTouch latestTouch;
+    public final BallTouch latestTouch; // null if framework ball touch is null
 
     public BallData(final BallInfo ball, final BallTouch latestTouch) {
         this.position = new Vector3(ball.physics().location());
