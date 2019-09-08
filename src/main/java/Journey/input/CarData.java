@@ -24,18 +24,30 @@ public class CarData {
      * This is a close approximation for whether the car is at max speed.
      */
     public final boolean isSupersonic;
+    public final boolean isDemolished;
+    public final boolean jumped;
+    public final boolean doubleJumped;
+    public final boolean isBot;
+    public final int index;
+    public final String name;
 
     /**
      * 0 for blue team, 1 for orange team.
      */
     public final int team;
 
-    public CarData(rlbot.flat.PlayerInfo playerInfo) {
+    public CarData(rlbot.flat.PlayerInfo playerInfo, int index) {
         this.position = new Vector3(playerInfo.physics().location());
         this.velocity = new Vector3(playerInfo.physics().velocity());
         this.orientation = CarOrientation.fromFlatbuffer(playerInfo);
         this.boost = playerInfo.boost();
         this.isSupersonic = playerInfo.isSupersonic();
+        this.isDemolished = playerInfo.isDemolished();
+        this.jumped = playerInfo.jumped();
+        this.doubleJumped = playerInfo.doubleJumped();
+        this.isBot = playerInfo.isBot();
+        this.index = index;
+        this.name = playerInfo.name();
         this.team = playerInfo.team();
         this.hasWheelContact = playerInfo.hasWheelContact();
     }
