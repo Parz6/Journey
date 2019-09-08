@@ -38,7 +38,7 @@ public class X360Controller extends Thread {
 
                 cO.withJump(currController.getAxisState(ControllerAxis.TRIGGERRIGHT) > 0.1177); // Imitate in-game
                 cO.withBoost(currController.isButtonPressed(ControllerButton.A));
-                cO.withSlide(currController.isButtonPressed(ControllerButton.X));
+                cO.withHandbrake(currController.isButtonPressed(ControllerButton.X));
 
                 float brake = currController.isButtonPressed(ControllerButton.LEFTBUMPER) ? 1.0F : 0F;
                 cO.withThrottle(currController.getAxisState(ControllerAxis.TRIGGERLEFT) - brake);

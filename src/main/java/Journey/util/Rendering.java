@@ -1,5 +1,6 @@
 package Journey.util;
 
+import Journey.input.CarData;
 import Journey.vector.Vector2;
 import Journey.vector.Vector3;
 import rlbot.render.Renderer;
@@ -7,10 +8,9 @@ import rlbot.render.Renderer;
 import java.awt.Color;
 
 public class Rendering {
-    public static void renderMinor2dArc(Renderer renderer, Vector2 startPf, Vector2 endPf, Vector2 endOf, double drawZ, Color color, boolean drawGuides) {
+    public static void renderMinor2dArc(Renderer renderer, Vector2 startPf, Vector2 endPf, Vector2 endOf, double radius, double drawZ, Color color, boolean drawGuides) {
         endOf = endOf.normalized();
-        final double lineLength = 50;
-        double radius = Misc.radiusForTurn(startPf, endPf, endOf);
+        final double lineLength = 10;
         boolean clockwise = endOf.angleTo(endPf.minus(startPf)) < 0; // From end to start, top-down
         Vector2 coc = endPf.plus(endOf.scaledToMagnitude(radius).rotateBy((clockwise ? 1.0 : -1.0) * (Math.PI / 2.0))); // Center of circle
 
@@ -43,8 +43,11 @@ public class Rendering {
             lastPoint = drawPoint;
         }
     }
+    public static void renderMinor2dArc(Renderer renderer, Vector2 startPf, Vector2 endPf, Vector2 endOf, double drawZ, Color color, boolean drawGuides) {
+        renderMinor2dArc(renderer, startPf, endPf, endOf, Misc.radiusForArcTurn(startPf, endPf, endOf), drawZ, color, drawGuides);
+    }
     public static void renderMinor2dArc(Renderer renderer, Vector2 startPf, Vector2 endPf, Vector2 endOf, double drawZ, Color color) {
-        renderMinor2dArc(renderer, startPf, endPf, endOf, drawZ, color);
+        renderMinor2dArc(renderer, startPf, endPf, endOf, drawZ, color, false);
     }
 
     private static final double defaultImpactRadius = 50.0;
@@ -67,5 +70,29 @@ public class Rendering {
     }
     public static void drawImpact(Renderer renderer, Vector3 loc, Color color) {
         drawImpact(renderer, loc, defaultImpactRadius, color);
+    }
+
+    public static void renderArcLine(Renderer renderer, CarData car, Vector2 target, double drawZ, Color color, boolean drawGuides) { // Arc from car, line from arc to target
+        Vector2 cPf = car.position.flatten();
+        Vector2 cOf = car.orientation.noseVector.flatten();
+        Vector2 arcStartDirection = cOf.scaled(-1);
+        double radius = Math.min(Misc.turnRadiusForSpeed(car.velocity.flatten().magnitude()), Misc.radiusForArcTurn(target, cPf, arcStartDirection));
+        System.out.println(Misc.turnRadiusForSpeed(0));
+        //double radius = 400;
+        Vector2[] vFAE = Misc.vectorToArcEnd(cPf, cPf.plus(arcStartDirection), target, radius);
+        if(vFAE == null) {
+            System.out.println("[Rendering.renderArcLine] Misc.vectorFromArcEnd returned null!");
+            return;
+        }
+        Vector2 targetToArcEnd = vFAE[0];
+        Vector2 arcEnd = target.plus(targetToArcEnd);
+        renderMinor2dArc(renderer, arcEnd, cPf, arcStartDirection, radius, drawZ, color, drawGuides);
+        renderer.drawLine3d(color, arcEnd.inflate(drawZ), target.inflate(drawZ));
+
+        if(drawGuides) {
+            renderer.drawCenteredRectangle3d(Color.red, cPf.inflate(drawZ), 20, 20, true);
+            //renderer.drawCenteredRectangle3d(Color.blue, arcEnd.inflate(drawZ), 20, 20, true); // Done by renderMinor2dArc
+            renderer.drawCenteredRectangle3d(Color.red, target.inflate(drawZ), 20, 20, true);
+        }
     }
 }

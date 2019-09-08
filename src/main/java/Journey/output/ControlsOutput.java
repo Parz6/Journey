@@ -2,12 +2,6 @@ package Journey.output;
 
 import rlbot.ControllerState;
 
-/**
- * A helper class for returning controls for your bot.
- *
- * This class is here for your convenience, it is NOT part of the framework. You can change it as much
- * as you want, or delete it.
- */
 public class ControlsOutput implements ControllerState {
 
     // 0 is straight, -1 is hard left, 1 is hard right.
@@ -27,35 +21,57 @@ public class ControlsOutput implements ControllerState {
 
     private boolean jumpDepressed;
     private boolean boostDepressed;
-    private boolean slideDepressed;
+    private boolean handbrakeDepressed;
     private boolean useItemDepressed;
 
     public ControlsOutput() {
+        clear();
     }
 
+    public ControlsOutput clear() {
+        steer = pitch = yaw = roll = throttle = 0F;
+        jumpDepressed = boostDepressed = handbrakeDepressed = useItemDepressed = false;
+        return this;
+    }
+
+    public ControlsOutput withSteer(float steer) {
+        this.steer = clamp(steer);
+        return this;
+    }
     public ControlsOutput withSteer(double steer) {
-        this.steer = clamp((float) steer);
-        return this;
+        return withSteer((float) steer);
     }
 
+    public ControlsOutput withPitch(float pitch) {
+        this.pitch = clamp(pitch);
+        return this;
+    }
     public ControlsOutput withPitch(double pitch) {
-        this.pitch = clamp((float) pitch);
-        return this;
+        return withPitch((float) pitch);
     }
 
+    public ControlsOutput withYaw(float yaw) {
+        this.yaw = clamp(yaw);
+        return this;
+    }
     public ControlsOutput withYaw(double yaw) {
-        this.yaw = clamp((float) yaw);
-        return this;
+        return withYaw((float) yaw);
     }
 
+    public ControlsOutput withRoll(float roll) {
+        this.roll = clamp(roll);
+        return this;
+    }
     public ControlsOutput withRoll(double roll) {
-        this.roll = clamp((float) roll);
-        return this;
+        return withRoll((float) roll);
     }
 
-    public ControlsOutput withThrottle(double throttle) {
-        this.throttle = clamp((float) throttle);
+    public ControlsOutput withThrottle(float throttle) {
+        this.throttle = clamp(throttle);
         return this;
+    }
+    public ControlsOutput withThrottle(double throttle) {
+        return withThrottle((float) throttle);
     }
 
     public ControlsOutput withJump(boolean jumpDepressed) {
@@ -68,8 +84,8 @@ public class ControlsOutput implements ControllerState {
         return this;
     }
 
-    public ControlsOutput withSlide(boolean slideDepressed) {
-        this.slideDepressed = slideDepressed;
+    public ControlsOutput withHandbrake(boolean handbrakeDepressed) {
+        this.handbrakeDepressed = handbrakeDepressed;
         return this;
     }
 
@@ -88,8 +104,8 @@ public class ControlsOutput implements ControllerState {
         return this;
     }
 
-    public ControlsOutput withSlide() {
-        this.slideDepressed = true;
+    public ControlsOutput withHandbrake() {
+        this.handbrakeDepressed = true;
         return this;
     }
 
@@ -139,7 +155,7 @@ public class ControlsOutput implements ControllerState {
 
     @Override
     public boolean holdHandbrake() {
-        return slideDepressed;
+        return handbrakeDepressed;
     }
 
     @Override
