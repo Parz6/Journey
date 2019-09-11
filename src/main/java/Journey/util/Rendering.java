@@ -8,9 +8,19 @@ import rlbot.render.Renderer;
 import java.awt.Color;
 
 public class Rendering {
+    private static final double rM2DA_degreesPerLine = 2.5; // Degrees of arc to draw lines between
+    private static final double rM2DA_maxLineLength = 250; // Prevents choppy rendering of large-radii arcs
     public static void renderMinor2dArc(Renderer renderer, Vector2 startPf, Vector2 endPf, Vector2 endOf, double radius, double drawZ, Color color, boolean drawGuides) {
+        if(radius > 100000000) { // Draw one line
+            renderer.drawLine3d(color, startPf.inflate(drawZ), endPf.inflate(drawZ));
+            if(drawGuides) {
+                renderer.drawCenteredRectangle3d(Color.red, startPf.inflate(drawZ), 20, 20, true);
+                renderer.drawCenteredRectangle3d(Color.red, endPf.inflate(drawZ), 20, 20, true);
+            }
+            return;
+        }
+
         endOf = endOf.normalized();
-        final double lineLength = 10;
         boolean clockwise = endOf.angleTo(endPf.minus(startPf)) < 0; // From end to start, top-down
         Vector2 coc = endPf.plus(endOf.scaledToMagnitude(radius).rotateBy((clockwise ? 1.0 : -1.0) * (Math.PI / 2.0))); // Center of circle
 
@@ -24,7 +34,8 @@ public class Rendering {
 
         // Generate points, from end to start, to draw straight lines between
         Vector2 lastPoint = endPf;
-        double radiansPerLineSegment = (clockwise ? -1.0 : 1.0) * (lineLength / radius); // 2 pi * (lineLength / (2 pi radius))
+        double maxRadiansPerLineSegment = rM2DA_maxLineLength / radius; // 2 pi * (lineLength / (2 pi radius))
+        double radiansPerLineSegment = (clockwise ? -1.0 : 1.0) * Math.min(Math.toRadians(rM2DA_degreesPerLine), maxRadiansPerLineSegment);
         double startAngle = endPf.minus(coc).angle(); // Radians
         //double angleRange = endPf.minus(coc).angleTo(startPf.minus(coc)); // Radians, only works up to +-PI
         double angleRange = 2.0 * endPf.minus(startPf).angleTo(endOf); // Radians
