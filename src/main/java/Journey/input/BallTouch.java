@@ -4,8 +4,6 @@ import Journey.util.Misc;
 import rlbot.flat.Touch;
 import Journey.vector.Vector3;
 
-import java.util.List;
-
 public class BallTouch {
     public final float gameSeconds; // The game time of the touch at 120hz. May be the time of the previous frame (if the touch occurred <(1/240)s after last frame?)
     public final Vector3 location;  // The absolute location of the touch (contact point on the surface of the ball)

@@ -1,6 +1,5 @@
 package Journey.input;
 
-
 import rlbot.flat.PlayerInfo;
 import Journey.vector.Vector3;
 
