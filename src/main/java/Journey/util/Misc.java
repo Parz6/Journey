@@ -9,6 +9,8 @@ import rlbot.cppinterop.RLBotDll;
 import rlbot.flat.BoostOption;
 
 public class Misc {
+    private Misc() {} // Disable instantiation
+
     public static final double frameT = 1.0 / 60.0; // Expected frame time (60Hz period)
     public static final double ballR = 92.75;       // Ball radius
     public static final double ballContactR = 86;   // For rolling ball and grounded car
@@ -28,6 +30,10 @@ public class Misc {
     public static final Vector3 blueNetPos = new Vector3(0, -netY, netHeight / 2.0);    // team=0
     public static final Vector3 orangeNetPos = new Vector3(0, netY, netHeight / 2.0);   // team=1
 
+    public static final int minWaitFramesBeforeFlip = 3; // Min frames of no jump between initial jump and second jump for flip
+    public static final double postFlipWheelContactTimeout = 0.125; // To disable air recovery etc. while flip is in progress
+    public static final double postFlipMaxWaitTime = 1.3; //0.6? "
+
 
     // Sign functions
     public static int sgn(int val) {
@@ -39,6 +45,9 @@ public class Misc {
     public static float sgn(float val) {
         return Math.signum(val);
     }
+    public static double sgnNo0(double val) { // Default to 1 if val is zero
+        return val != 0 ? sgn(val) : 1;
+    }
 
     // Returns val constrained between min and max (or +-bound)
     public static double clamp(double val, double min, double max) {
@@ -48,10 +57,12 @@ public class Misc {
         return bound > 0 ? clamp(val, -bound, bound) : clamp(val, bound, -bound);
     }
 
+    // Acceleration due to full throttle, scales down linearly with throttle (0,1] ([-1,0) if car moving backwards)
     public static double throttleAccelAtSpd(double s) { //Full (1.0) throttle accel at speed s
+        if (s < 0)
+            return 3500;
         if (s == 0)
             return 1600;
-        s = Math.abs(s);
         if (s < 1400) // 0 < |s| < 1400
             return 1592.0 - (s * (1432.0 / 1400.0)); // 1600 - (1440 * (|s| / 1400)); 1440 / 1400 = 36.0 / 35.0
         if (s < 1410) // 1400 <= |s| < 1410
@@ -93,80 +104,63 @@ public class Misc {
         return Misc.clamp(spd, speeds[0], speeds[5]);
     }
 
-    // Acute positive angle (radians) from chord (start to end) to tangent of start point for chord length x across circle of radius r
-    public static double acuteHeadingOffsetForArcTurn(Vector2 start, Vector2 end, double r) { // Acute heading offset from start -> end aka end.minus(start)
-        double x = start.distance(end);
-        r = Math.max(x / 2.0, r); // Forces x: [0, 2r]; r < x/2 is an impossible situation (chord longer than diameter)
-        return Math.asin(x / (2.0 * r)); // arcsin(x/2r): [0, pi/2] for x: [0, 2r]
-    }
-    // It doesn't matter what the start orientation is; there's only one radius given start and end positions and ending orientation
-    public static double radiusForArcTurn(Vector2 startPf, Vector2 endPf, Vector2 endOf) {
-        Vector2 displacement = endPf.minus(startPf); //Displacement between start and end points
-        double distance = displacement.magnitude(); //Distance d between start and end points
-        double theta1 = displacement.angleTo(endOf); //Shot angle
-        //double theta = 2.0 * theta1; //Arc angle
-        //while (theta < 0)
-        //    theta += Math.PI * 2.0;
-        double radius = distance / (2.0 * Math.sin(theta1)); //d / (2.0 * Math.sin(theta))
-        return Math.abs(radius);
-    }
-    public static double arcTurnDuration(double radius, double thetaRad, double v) {
-        return thetaRad * radius / v; // ((thetaRad / 2*pi) * (2*pi*r)) / v
-    }
-    public static double arcTurnDuration(double radius, double thetaRad) {
-        return arcTurnDuration(radius, thetaRad, speedForTurnRadius(radius));
-    }
-    public static double avgSpeedForArcTurnTime(double distance, double radius, double timeAllotted) {
-        double arcLen = 2.0 * radius * Math.asin(distance / (2.0 * radius));
-        return arcLen / timeAllotted;
-    }
-
     public static Vector2 carFrontCornerOffset2D(boolean right) {
         return new Vector2(octaneHalfLength + octaneLengthoffset, (right ? -1.0 : 1.0) * octaneHalfWidth);
     }
+    public static Vector2 carFrontCorner(Vector2 cPf, Vector2 cOf, boolean right) {
+        return cPf.plus(carFrontCornerOffset2D(right).rotateBy(cOf)); // Rotate and add offset
+    }
     public static Vector2 carFrontCorner(CarData car, boolean right) { //Assumes on ground
-        return car.position.flatten().plus(carFrontCornerOffset2D(right).rotateBy(car.orientation.noseVector.flatten())); // Rotate and add offset
+        return carFrontCorner(car.position.flatten(), car.orientation.noseVector.flatten(), right);
     }
     public static Vector2 carDestForFrontCornerContact(Vector2 strikeLoc, Vector2 approachDirection, boolean right) {
         return strikeLoc.minus(carFrontCornerOffset2D(right).rotateBy(approachDirection)); // Rotate and add offset
     }
 
-    // Returns: {arcEnd to locationArcEndFaces, arc % of circle as an angle} OR null if impossible (radius too big)
-    public static Vector2[] vectorToArcEnd(Vector2 arcStart, Vector2 locationArcStartFaces, Vector2 locationArcEndFaces, double arcRadius) { //Vector from arc end to locationArcEndFaces
-        Vector2 straightawayToCar = locationArcEndFaces.minus(arcStart); //Originally carLocRel
-        Vector2 strikeToStraightaway = arcStart.minus(locationArcStartFaces);
-        double rotatorRad = strikeToStraightaway.angleTo(straightawayToCar);
-        Vector2 carLocRelRotated = (new Vector2(0, straightawayToCar.magnitude())).rotateBy(Math.abs(rotatorRad));
-        boolean arcToRight = rotatorRad < 0;
-        Vector2 finalCarLoc = carLocRelRotated.plus(new Vector2(arcRadius, 0));
-        Vector2[] absoluteResultArr = absoluteVectorToArcEnd(finalCarLoc, arcRadius);
-        if (absoluteResultArr == null) //Impossible with given turn radius
-            return null;
-        Vector2[] absoluteResult = absoluteResultArr;
-        if (arcToRight) {
-            absoluteResult[0] = new Vector2(-absoluteResult[0].x, absoluteResult[0].y); //Un-mirror over y
-            absoluteResult[1] = (new Vector2(absoluteResult[1].x, -absoluteResult[1].y)).normalized(); //TODO: Is this right? Should it not be done at all?
+    public static double ballRadiusAtHeight2D(double height) { // Absolute height from bottom of ball; height clamps to [0,2*92.75]
+        double fromCenterNormalized = clamp((height - ballR) / ballR, -1, 1);
+        return Math.cos(Math.asin(fromCenterNormalized)) * ballR;
+    }
+    public static double ballContactRForPZ(double ballPZ) { // For car on ground
+        double contactZFromBallBottom = Math.max(octaneFrontTopHeight - (ballPZ - Misc.ballR), 0);
+        return clamp(ballRadiusAtHeight2D(contactZFromBallBottom), 0, ballContactR);
+    }
+
+    public static boolean withinCarXRange(DataPacket dp, double x) {
+        Vector2[] jointToCarSides = new Vector2[4];
+        jointToCarSides[0] = dp.cOf.scaledToMagnitude(Misc.octaneHalfLength + Misc.octaneLengthoffset);
+        jointToCarSides[1] = dp.cOf.scaledToMagnitude(Misc.octaneHalfLength - Misc.octaneLengthoffset).rotateBy(Math.PI);
+        Vector2 carToSide = dp.cOf.scaledToMagnitude(Misc.octaneHalfWidth);
+        jointToCarSides[2] = carToSide.rotateBy(Math.PI / 2.0);
+        jointToCarSides[3] = carToSide.rotateBy(-Math.PI / 2.0);
+        double positiveXPart = 0, negativeXPart = 0; // Magnitudes, two contributions each (both values are >=0)
+        int posCount = 0, negCount = 0;
+        for(Vector2 part : jointToCarSides) {
+            if(part.x != 0 ? part.x > 0 : part.y > 0) { // Y to split up sides of vector at 0 or PI degrees
+                positiveXPart += part.x;
+                posCount++;
+            } else {
+                negativeXPart -= part.x;
+                negCount++;
+            }
         }
-        Vector2[] result = new Vector2[2];
-        result[0] = absoluteResult[0].rotateBy(strikeToStraightaway.angle() - (Math.PI / 2.0)); //Result (rotated back)
-        result[1] = absoluteResultArr[1]; //Theta (of arc) as vector
-        return result;
+        if(posCount != 2 || negCount != 2)
+            System.out.println("[Misc.withinCarXRange] posCount or negCount not equal to 2! posCount: " + posCount + ", negCount: " + negCount);
+        return x > dp.cP.x - negativeXPart && x < dp.cP.x + positiveXPart;
     }
-    // Assuming arc of radius starts at (radius, 0) facing 90deg (positive y) and ends pointing towards target; Null if impossible (radius too big)
-    private static Vector2[] absoluteVectorToArcEnd(Vector2 target, double radius) { // Target to arc end
-        double x = target.x;
-        double y = target.y;
-        double radical = Math.sqrt(-Math.pow(radius, 2) + Math.pow(x, 2) + Math.pow(y, 2));
-        double thetaNeg = 2.0 * Math.atan((y - radical) / (x + radius)); //+radical instead for clockwise (wrong way)
-        //double slope = -1.0 / Math.tan(thetaNeg);
-        if (Double.isNaN(thetaNeg)) //Impossible with given turn radius
-            return null;
-        Vector2 thetaLocVec = new Vector2(radius * Math.cos(thetaNeg), radius * Math.sin(thetaNeg));
-        Vector2[] result = new Vector2[2];
-        result[0] = thetaLocVec.minus(target); //Result
-        result[1] = new Vector2(Math.cos(thetaNeg), Math.sin(thetaNeg)); //Theta as vector
-        return result;
+
+    public static Vector2 wallShotBounceLoc(Vector2 ballStart, double wallXSgn, int team) { // wallXSgn default + (1)
+        double bX = ballStart.x;
+        double bY = ballStart.y;
+        double nX = targetNet(team).x;
+        double nY = targetNet(team).y;
+        //double wX = (wallX - ballR) * (bX > sgnNo0(wallXSgn) ? 1.0 : -1.0); // Wall X position (minus ball radius); x pos of ball on wall contact
+        double wX = (wallX - ballR) * sgn(wallXSgn); // Wall X position (minus ball radius); x pos of ball on wall contact
+        double wY = ((bX*nY) + (nX*bY) - (bY*wX) - (nY*wX)) / (bX + nX - (2.0*wX)); // Wall Y position; y pos of ball on wall contact
+        return new Vector2(wX, wY);
     }
+
+
 
     public static Boolean matchIsUnlimitedBoost;
     public static boolean unlimitedBoost() {
@@ -220,7 +214,7 @@ public class Misc {
             double vCurrMax = boosting ? 2300 : Math.max(vCurr, 1410); // If (at max speed) or (faster than 1410 and not boosting), can't speed up
             vCurr = Math.min(vCurr + (aCurr * dt), vCurrMax); // v = v + at
             frames++;
-            if(vCurr < 0 && aCurr < 0)
+            if(frames > 10000 || (vCurr <= 0 && aCurr <= 0))
                 break;
         }
         //System.out.println("lDD loop took " + ((System.nanoTime() - t1) / 1000000.0) + "ms");
@@ -320,6 +314,30 @@ public class Misc {
         return cO;
     }
 
+    public static boolean ballAboveCar(DataPacket dp) {
+        double ballContactRAdjusted = ballContactR - 2;
+        boolean ballPYOK = dp.cRelY < octaneHalfLength - octaneLengthoffset + ballContactRAdjusted && dp.cRelY > -(octaneHalfLength + octaneLengthoffset + ballContactRAdjusted);
+        boolean ballPXOK = Math.abs(dp.cRelX) < octaneHalfWidth + ballContactRAdjusted;
+        return ballPYOK && ballPXOK;
+    }
+    public static boolean ballCenterAboveCar(DataPacket dp) {
+        boolean ballPYOK = dp.cRelY < Misc.octaneHalfLength - Misc.octaneLengthoffset && dp.cRelY > -(Misc.octaneHalfLength + Misc.octaneLengthoffset);
+        boolean ballPXOK = Math.abs(dp.cRelX) < Misc.octaneHalfWidth;
+        return ballPYOK && ballPXOK;
+    }
+    public static boolean dribbleAnglesOK(Vector2 cOf, Vector2 bVf) {
+        double headingToBallV = Math.abs(Math.toDegrees(cOf.angleTo(bVf)));
+        return bVf.magnitude() < 100 || headingToBallV < 90;//35
+    }
+    public static boolean ballOnCar(DataPacket dp) {
+        if(!ballAboveCar(dp))
+            return false;
+        boolean ballZOK = dp.bP.z > Misc.ballR + 2 && dp.bP.z < octaneFrontTopHeight + Misc.ballR + (dp.car.position.z - octaneJointHeight) + 20; //5
+        boolean ballVOK = Math.abs(dp.bV.z) < 300;
+        //System.out.println("ballZOK? " + ballZOK + ", ballVOK? " + ballVOK + ", anglesOK? " + anglesOK);
+        return ballZOK && ballVOK;// && dribbleAnglesOK(dp.cOf, dp.bVf);
+    }
+
     public static Vector2 dodgeDirection(Vector2 absoluteDodgeDirection, Vector2 carNoseOrientation) {
         return absoluteDodgeDirection.rotateBy((Math.PI / 2.0) - carNoseOrientation.angle());
     }
@@ -352,11 +370,25 @@ public class Misc {
     public static double netWallXIntercept(double targetNetY, Vector2 ballPf, Vector2 ballVf) {
         return ballPf.x + ((targetNetY - ballPf.y) / (ballVf.y / ballVf.x)); //Solved from point-slope form for line (slope from ballVf, pos from ballP)
     }
+    public static boolean ballTowardsNet(Vector3 bV, Vector2 bPf, int team, double minDistFromPostsAndWall, boolean ownNet) {
+        double netY = Misc.netY * (team == (ownNet ? 0 : 1) ? -1.0 : 1.0);
+
+        if(Misc.sgn(bV.y) * Misc.sgn(netY) < 0) // Ball going towards other half
+            return false;
+        double netWallXIntercept = Misc.netWallXIntercept(netY, bPf, bV.flatten());
+        return Math.abs(netWallXIntercept) < Misc.netHalfWidth - Misc.ballR - minDistFromPostsAndWall;
+    }
+    public static boolean ballTowardsNet(DataPacket dp, double minDistFromPostsAndWall, boolean ownNet) {
+        return ballTowardsNet(dp.bV, dp.bPf, dp.team, minDistFromPostsAndWall, ownNet);
+    }
+    public static boolean ballTowardsNet(DataPacket dp, boolean ownNet) {
+        return ballTowardsNet(dp, 0, true);
+    }
     public static Vector3 bestTargetNetLoc(Vector3 ballP, Vector2 ballVf, double minDistFromPostsAndWall, int team) {
         Vector2 ballPf = ballP.flatten();
         Vector3 tNP = targetNet(team);
 
-        double targetX = 0;
+        double targetX;
         if(ballVf.x == 0 || ballVf.y == 0) //Ball not moving
             targetX = ballP.x;
         else if(Misc.sgn(ballVf.y) == Misc.sgn(tNP.y)) { //Ball moving towards their half
@@ -371,5 +403,12 @@ public class Misc {
     }
     public static Vector3 bestTargetNetLoc(Vector3 ballP, Vector2 ballVf, int team) {
         return bestTargetNetLoc(ballP, ballVf, 0, team);
+    }
+
+    public static boolean ballInFrontOfNet(Vector2 bPf, double minDistFromPostsAndWall) { // Either net
+        return Math.abs(Misc.netY - Math.abs(bPf.y)) < 150 && Math.abs(bPf.x) < Misc.netHalfWidth - Misc.ballR - minDistFromPostsAndWall;
+    }
+    public static boolean ballInFrontOfNet(Vector2 bPf) {
+        return ballInFrontOfNet(bPf, 0);
     }
 }

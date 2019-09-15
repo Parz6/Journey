@@ -55,7 +55,7 @@ public class Rendering {
         }
     }
     public static void renderMinor2dArc(Renderer renderer, Vector2 startPf, Vector2 endPf, Vector2 endOf, double drawZ, Color color, boolean drawGuides) {
-        renderMinor2dArc(renderer, startPf, endPf, endOf, Misc.radiusForArcTurn(startPf, endPf, endOf), drawZ, color, drawGuides);
+        renderMinor2dArc(renderer, startPf, endPf, endOf, ArcMath.radiusForArcTurn(startPf, endPf, endOf), drawZ, color, drawGuides);
     }
     public static void renderMinor2dArc(Renderer renderer, Vector2 startPf, Vector2 endPf, Vector2 endOf, double drawZ, Color color) {
         renderMinor2dArc(renderer, startPf, endPf, endOf, drawZ, color, false);
@@ -87,10 +87,10 @@ public class Rendering {
         Vector2 cPf = car.position.flatten();
         Vector2 cOf = car.orientation.noseVector.flatten();
         Vector2 arcStartDirection = cOf.scaled(-1);
-        double radius = Math.min(Misc.turnRadiusForSpeed(car.velocity.flatten().magnitude()), Misc.radiusForArcTurn(target, cPf, arcStartDirection));
+        double radius = Math.min(Misc.turnRadiusForSpeed(car.velocity.flatten().magnitude()), ArcMath.radiusForArcTurn(target, cPf, arcStartDirection));
         System.out.println(Misc.turnRadiusForSpeed(0));
         //double radius = 400;
-        Vector2[] vFAE = Misc.vectorToArcEnd(cPf, cPf.plus(arcStartDirection), target, radius);
+        Vector2[] vFAE = ArcMath.vectorToArcEnd(cPf, cPf.plus(arcStartDirection), target, radius);
         if(vFAE == null) {
             System.out.println("[Rendering.renderArcLine] Misc.vectorFromArcEnd returned null!");
             return;
