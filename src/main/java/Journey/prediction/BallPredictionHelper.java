@@ -1,6 +1,7 @@
 package Journey.prediction;
 
 import Journey.input.CarData;
+import Journey.input.DataPacket;
 import Journey.util.Misc;
 import Journey.vector.Vector2;
 import rlbot.cppinterop.RLBotDll;
@@ -14,10 +15,10 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class BallPredictionHelper {
-    public static void drawUntilMoment(Renderer renderer, float gameSeconds, Color color, int sliceResolution) {
-        BPslice[] bP = getPred(sliceResolution);
+    public static void drawUntilMoment(DataPacket dp, Renderer renderer, float gameSeconds, Color color, int sliceResolution) {
+        BPslice[] bP = dp.bPred();
         Vector3 previousLocation = null;
-        for (int i = 0; i < bP.length; i++) {
+        for(int i = 0; i < bP.length; i++) {
             BPslice slice = bP[i];
             if (slice.t > gameSeconds) {
                 break;
@@ -28,13 +29,14 @@ public class BallPredictionHelper {
             previousLocation = slice.p;
         }
     }
-    public static void drawUntilMoment(Renderer renderer, float gameSeconds, Color color) {
-        drawUntilMoment(renderer, gameSeconds, color, 4);
+    public static void drawUntilMoment(DataPacket dp, Renderer renderer, float gameSeconds, Color color) {
+        drawUntilMoment(dp, renderer, gameSeconds, color, 4);
     }
-    public static void draw(Renderer renderer) {
-        drawUntilMoment(renderer, Float.MAX_VALUE, Color.cyan);
+    public static void draw(DataPacket dp, Renderer renderer) {
+        drawUntilMoment(dp, renderer, Float.MAX_VALUE, Color.cyan);
     }
 
+    //TODO: Only store slice, grab other stuff on demand, get data with getters that fill from "slice" if not previously filled
     public static final class BPslice {
         public PredictionSlice slice;   // Framework PredictionSlice object
         public Boolean right;           // Car corner to hit with
@@ -61,10 +63,10 @@ public class BallPredictionHelper {
         }
     }
     public static BPslice[] getPred(int stepSize) {
-        BallPrediction bP;
+        BallPrediction dllBP;
         try {
             long t0 = System.nanoTime();
-            bP = RLBotDll.getBallPrediction();
+            dllBP = RLBotDll.getBallPrediction();
             long t1 = System.nanoTime();
             if(false && t1 - t0 > 250000)
                 System.out.println("\n[BallPredictionHelper.getPred] RLBotDll.getBallPrediction() took " + ((t1 - t0) / 1000.0) + "us (>250)\n");
@@ -74,11 +76,14 @@ public class BallPredictionHelper {
             return new BPslice[0];
         }
 
-        int len = bP.slicesLength();
+        int len = dllBP.slicesLength();
+        if(len != 360) {
+            System.out.println("[BallPredictionHelper.getPred] dllBP length not 360! " + len);
+        }
         List<BPslice> outputAR = new ArrayList<>();
         stepSize = Math.max(1, stepSize);
         for(int i=0; i<len; i+=stepSize) {
-            outputAR.add(new BPslice(bP.slices(i)));
+            outputAR.add(new BPslice(dllBP.slices(i)));
         }
         return outputAR.toArray(new BPslice[0]);
     }
@@ -97,17 +102,20 @@ public class BallPredictionHelper {
         }
         return bP[i].p.distance(slice.p);
     }
-    public static double posErr(BPslice slice) {
-        return posErr(getPred(), slice);
+    public static double posErr(DataPacket dp, BPslice slice) {
+        return posErr(dp.bPred(), slice);
     }
 
-    public static BPslice firstReachableSlice(Vector2 carPosition, Vector2 carVelocity, Vector2 carOrientationNose, double boost) { // position to ball surface
-        BPslice[] bP = getPred();
-        float now = bP[0].t;
+    private static final double fRSMaxZ = Misc.octaneFrontTopHeight + Misc.ballR - 25; // OG: Misc.octaneFrontTopHeight + Misc.ballR
+    public static BPslice firstReachableSlice(DataPacket dp, Vector2 carPosition, Vector2 carVelocity, Vector2 carOrientationNose, double boost) { // Caps at least slice, DOES NOT NULL
+        //long t0 = System.nanoTime();
+        BPslice[] bP = dp.bPred();
+        float now = dp.t;
         Vector2 leftCorner = carPosition.plus(Misc.carFrontCornerOffset2D(false).rotateBy(carOrientationNose)); // Rotate and add offset
         Vector2 rightCorner = carPosition.plus(Misc.carFrontCornerOffset2D(true).rotateBy(carOrientationNose)); // Rotate and add offset
-        for (int i = 1; i < bP.length; i++) {
-            if(bP[i].p.z > Misc.octaneFrontTopHeight + Misc.ballR) //TODO: Change eventually for dodges
+        for(int i = 1; i < bP.length; i++) {
+            boolean lastSlice = i + 1 >= bP.length;
+            if(bP[i].p.z > fRSMaxZ && !lastSlice) //TODO: Change eventually for dodges
                 continue;
 
             Vector2 positionToBallL = bP[i].p.flatten().minus(leftCorner);
@@ -117,7 +125,7 @@ public class BallPredictionHelper {
 
             //TODO: Change eventually for dodges
             double avgRequiredStraightLineSpd = Math.min(dL, dR) / (bP[i].t - now);
-            if(avgRequiredStraightLineSpd > 2300)
+            if(avgRequiredStraightLineSpd > 2300 && !lastSlice)
                 continue;
 
             double viL = carVelocity.dotProduct(positionToBallL.normalized());
@@ -127,16 +135,16 @@ public class BallPredictionHelper {
             double approachTR = Misc.lineDriveDuration(viR, dR, boost);
             //System.out.println("fRS t2 took " + ((System.nanoTime() - t2) / 1000000.0) + "ms");
             boolean right = approachTR < approachTL;
-            if(now + (right ? approachTR : approachTL) < bP[i].t) {
+            if(now + (right ? approachTR : approachTL) < bP[i].t || lastSlice) { // Reachable or last slice (6 seconds out)
                 //System.out.println(i + ": d=" + d + ", vi=" + vi + ", t=" + approachT);
                 //System.out.println("fRS to " + i + " took " + ((System.nanoTime() - t0) / 1000000.0) + "ms");
                 return bP[i].withSide(right);
             }
         }
         //System.out.println("fRS reached end (failure), took " + ((System.nanoTime() - t0) / 1000000.0) + "ms");
-        return null;
+        return null; // Should never happen
     }
-    public static BPslice firstReachableSlice(CarData car) {
-        return firstReachableSlice(car.position.flatten(), car.velocity.flatten(), car.orientation.noseVector.flatten(), car.boost);
+    public static BPslice firstReachableSlice(DataPacket dp, CarData car) {
+        return firstReachableSlice(dp, car.position.flatten(), car.velocity.flatten(), car.orientation.noseVector.flatten(), car.boost);
     }
 }
