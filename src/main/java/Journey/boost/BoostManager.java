@@ -1,5 +1,7 @@
 package Journey.boost;
 
+import Journey.input.DataPacket;
+import Journey.vector.Vector2;
 import rlbot.cppinterop.RLBotDll;
 import rlbot.flat.BoostPadState;
 import rlbot.flat.FieldInfo;
@@ -68,4 +70,25 @@ public class BoostManager {
         }
     }
 
+    public static final double boostPickupMaxEndV = -1;
+    public static final double boostPickupMaxDist = 500;
+    public static final double boostPickupMaxHeadingErr = 55;//45?
+    public static BoostPad getTargetFullBoostPad(DataPacket dp) { // Null if shouldn't go for any full boosts
+        BoostPad bestBP = null;
+        //double bestTotalTripTime;
+        for(int i = 0; i< BoostManager.getFullBoosts().size(); i++) {
+            BoostPad currentBP = BoostManager.getFullBoosts().get(i);
+            if(!currentBP.isActive())
+                continue;
+            //Vector2 bPloc = currentBP.getLocation().flatten();
+            Vector2 bPTPL = currentBP.targetPickupLoc(dp.cPf);
+            Vector2 carToBP = bPTPL.minus(dp.cPf);
+            double carToBPMag = carToBP.magnitude();
+            double carToBPHeadingErr = Math.abs(Math.toDegrees(carToBP.angleTo(dp.cOf)));
+            if(carToBPMag < boostPickupMaxDist && carToBPHeadingErr < boostPickupMaxHeadingErr)
+                return currentBP;
+            //double travelTime = Misc.lineDriveDuration(dp.cVf.dotProduct(carToBP.normalized()), carToBPMag, dp.car.boost, boostPickupMaxEndV);
+        }
+        return bestBP;
+    }
 }
