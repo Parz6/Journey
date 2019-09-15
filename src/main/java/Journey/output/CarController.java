@@ -28,6 +28,6 @@ public class CarController {
         this.cO.clear();
     }
     public boolean isHumanControlled() {
-        return x360 != null && x360.isEnabled();
+        return x360 != null && x360.isAlive() && x360.isEnabled();
     }
 }
