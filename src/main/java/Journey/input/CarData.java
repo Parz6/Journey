@@ -1,6 +1,6 @@
 package Journey.input;
 
-
+import Journey.prediction.BallPredictionHelper;
 import Journey.vector.Vector3;
 
 public class CarData {
@@ -35,6 +35,14 @@ public class CarData {
      * 0 for blue team, 1 for orange team.
      */
     public final int team;
+
+    private BallPredictionHelper.BPslice fRS;
+    public BallPredictionHelper.BPslice fRS(DataPacket dp) {
+        if(fRS == null) {
+            fRS = BallPredictionHelper.firstReachableSlice(dp, this);
+        }
+        return fRS;
+    }
 
     public CarData(rlbot.flat.PlayerInfo playerInfo, int index) {
         this.position = new Vector3(playerInfo.physics().location());
